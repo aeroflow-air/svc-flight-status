@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "AeroFlow.ServiceTemplate": {
+    "AeroFlow.FlightStatus": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,
