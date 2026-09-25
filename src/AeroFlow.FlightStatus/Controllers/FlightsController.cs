@@ -1,51 +1,76 @@
+using AeroFlow.FlightStatus.Domain;
 using AeroFlow.FlightStatus.Models;
+using AeroFlow.FlightStatus.Storage;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AeroFlow.FlightStatus.Controllers;
 
+/// <summary>
+/// HTTP edge for the flight lifecycle. Side effects (clock, store) live here; decisions live in
+/// <see cref="FlightLifecycle"/> and <see cref="FlightQueries"/>. Domain errors become ProblemDetails.
+/// </summary>
 [ApiController]
 [Route("api/flights")]
-public sealed class FlightsController : ControllerBase
+public sealed class FlightsController(IFlightStore store, TimeProvider time) : ControllerBase
 {
-    // Tiny in-memory demo data — replace with real persistence later.
-    private static readonly IReadOnlyDictionary<string, FlightStatusSummary> DemoFlights =
-        new Dictionary<string, FlightStatusSummary>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["AF204"] = new("AF204", "LGW", "EDI", "OnTime"),
-            ["AF881"] = new("AF881", "EDI", "AMS", "Delayed"),
-        };
-
     /// <summary>Lightweight hello for the flight-status domain — proves the API is up.</summary>
     [HttpGet("ping")]
     [ProducesResponseType(typeof(FlightPingResponse), StatusCodes.Status200OK)]
-    public ActionResult<FlightPingResponse> Ping()
-    {
-        return Ok(new FlightPingResponse(
+    public ActionResult<FlightPingResponse> Ping() =>
+        Ok(new FlightPingResponse(
             Service: "AeroFlow.FlightStatus",
             Message: "Flight status probe OK",
-            UtcNow: DateTimeOffset.UtcNow));
-    }
+            UtcNow: time.GetUtcNow()));
 
-    /// <summary>
-    /// Demo lookup. Unknown flight numbers return ProblemDetails (404) via NotFound(),
-    /// showing the golden-path error shape without a custom middleware stack.
-    /// </summary>
     [HttpGet("{flightNumber}")]
-    [ProducesResponseType(typeof(FlightStatusSummary), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(FlightResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public ActionResult<FlightStatusSummary> GetByFlightNumber(string flightNumber)
-    {
-        if (!DemoFlights.TryGetValue(flightNumber, out var flight))
-        {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Flight not found",
-                Detail = $"No flight exists with number '{flightNumber}'.",
-                Status = StatusCodes.Status404NotFound,
-                Instance = HttpContext.Request.Path,
-            });
-        }
+    public ActionResult<FlightResponse> GetByFlightNumber(string flightNumber) =>
+        store.Find(flightNumber) is { } flight
+            ? Ok(FlightResponse.From(flight))
+            : Problem(new FlightNotFound(flightNumber));
 
-        return Ok(flight);
+    /// <summary>Departures board for an airport, ordered by estimated departure.</summary>
+    [HttpGet("departures/{airport}")]
+    [ProducesResponseType(typeof(DeparturesBoardResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public ActionResult<DeparturesBoardResponse> GetDepartures(string airport) =>
+        IataCode.Parse(airport)
+            .Map(code => new DeparturesBoardResponse(
+                Airport: code.Value,
+                GeneratedAt: time.GetUtcNow(),
+                Departures: FlightQueries.DeparturesBoard(store.All(), code).ConvertAll(DepartureBoardEntry.From)))
+            .Match<ActionResult>(Ok, Problem);
+
+    /// <summary>Applies a lifecycle event to a flight and returns the updated flight.</summary>
+    [HttpPost("{flightNumber}/events")]
+    [ProducesResponseType(typeof(FlightResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public ActionResult<FlightResponse> PostEvent(string flightNumber, FlightEventRequest request) =>
+        request.ToDomainEvent()
+            .Bind(evt => store.Update(flightNumber, flight => FlightLifecycle.Apply(flight, evt)))
+            .Match<ActionResult>(flight => Ok(FlightResponse.From(flight)), Problem);
+
+    private ObjectResult Problem(Error error)
+    {
+        var (status, title) = error switch
+        {
+            FlightNotFound => (StatusCodes.Status404NotFound, "Flight not found"),
+            ValidationError => (StatusCodes.Status400BadRequest, "Invalid request"),
+            RuleViolation => (StatusCodes.Status409Conflict, "Flight event rejected"),
+            _ => (StatusCodes.Status500InternalServerError, "Unexpected error"),
+        };
+
+        var problem = ProblemDetailsFactory.CreateProblemDetails(
+            HttpContext,
+            statusCode: status,
+            title: title,
+            detail: error.Message,
+            instance: HttpContext.Request.Path);
+        problem.Extensions["code"] = error.Code;
+
+        return new ObjectResult(problem) { StatusCode = status };
     }
 }
