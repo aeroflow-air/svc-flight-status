@@ -24,7 +24,7 @@ dotnet test
 
 The service models a flight from scheduling to arrival. The domain lives in [`src/AeroFlow.FlightStatus/Domain`](src/AeroFlow.FlightStatus/Domain) and is pure: no clock, storage or HTTP.
 
-- **`Flight`**: an immutable record holding flight number, origin and destination (`IataCode`, three letters), scheduled, estimated and actual times, an optional `Gate`, a `Status` (`FlightState`) and, where relevant, a diversion airport or cancellation reason.
+- **`Flight`**: an immutable record holding flight number, origin and destination (`IataCode`, three letters), scheduled and estimated times, a `Status` (`FlightState`), and `Option` values for things that may not be known yet: actual times, the `Gate`, a diversion airport and a cancellation reason.
 - **States**: `Scheduled`, `Delayed`, `Boarding`, `Departed`, `Landed`, `Cancelled`, `Diverted`.
 - **Events**: `DelayAnnounced`, `GateAssigned`, `GateChanged`, `BoardingStarted`, `Departed`, `Landed`, `Cancelled`, `Diverted`. This is a closed set of sealed records.
 - **`FlightLifecycle.Apply(flight, event)`** returns a `Result<Flight>`: either the new flight or a typed error with a stable code. `Replay` folds a sequence of events and stops at the first error.
@@ -69,7 +69,7 @@ curl -X POST http://localhost:8080/api/flights/AF517/events \
   -d '{"type":"boarding-started"}'
 ```
 
-This service follows [ADR-0004: functional-style C#](https://github.com/aeroflow-air/platform-handbook/blob/main/docs/decisions/0004-functional-style-csharp.md). It uses immutable records, a pure domain core with side effects at the edges (controller, store and `TimeProvider`), and explicit `Result` outcomes rather than exceptions. It uses only the BCL, with no FP library.
+This service follows [ADR-0004: functional-style C#](https://github.com/aeroflow-air/platform-handbook/blob/main/docs/decisions/0004-functional-style-csharp.md). It uses immutable records, a pure domain core with side effects at the edges (controller, store and `TimeProvider`), explicit `Result` outcomes rather than exceptions, and `Option` rather than `null` for absent values (nullable types appear only in the HTTP request and response records). It uses only the BCL, with no FP library.
 
 ## Container
 

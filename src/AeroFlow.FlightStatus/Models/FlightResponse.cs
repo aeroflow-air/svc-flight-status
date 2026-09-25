@@ -2,7 +2,10 @@ using AeroFlow.FlightStatus.Domain;
 
 namespace AeroFlow.FlightStatus.Models;
 
-/// <summary>API shape for a flight. Kept separate from the domain <see cref="Flight"/> so either can evolve.</summary>
+/// <summary>
+/// API shape for a flight. Kept separate from the domain <see cref="Flight"/> so either can evolve.
+/// Domain <see cref="Option{T}"/> values become nullable here, because JSON represents absence as <c>null</c>.
+/// </summary>
 public sealed record FlightResponse(
     string FlightNumber,
     string Origin,
@@ -28,10 +31,10 @@ public sealed record FlightResponse(
         ScheduledArrival: flight.ScheduledArrival,
         EstimatedDeparture: flight.EstimatedDeparture,
         EstimatedArrival: flight.EstimatedArrival,
-        ActualDeparture: flight.ActualDeparture,
-        ActualArrival: flight.ActualArrival,
-        Gate: flight.Gate?.Value,
+        ActualDeparture: flight.ActualDeparture.Match<DateTimeOffset?>(t => t, () => null),
+        ActualArrival: flight.ActualArrival.Match<DateTimeOffset?>(t => t, () => null),
+        Gate: flight.Gate.Match<string?>(g => g.Value, () => null),
         DelayMinutes: FlightQueries.DelayMinutes(flight),
-        DivertedTo: flight.DivertedTo?.Value,
-        CancellationReason: flight.CancellationReason);
+        DivertedTo: flight.DivertedTo.Match<string?>(a => a.Value, () => null),
+        CancellationReason: flight.CancellationReason.Match<string?>(r => r, () => null));
 }

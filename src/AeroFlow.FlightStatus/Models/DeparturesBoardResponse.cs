@@ -21,7 +21,7 @@ public sealed record DepartureBoardEntry(
         Destination: flight.Destination.Value,
         ScheduledDeparture: flight.ScheduledDeparture,
         EstimatedDeparture: flight.EstimatedDeparture,
-        Gate: flight.Gate?.Value,
+        Gate: flight.Gate.Match<string?>(g => g.Value, () => null),
         Status: flight.Status.ToString(),
         DelayMinutes: FlightQueries.DelayMinutes(flight));
 }
