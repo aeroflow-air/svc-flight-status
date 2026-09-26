@@ -63,7 +63,7 @@ public sealed class ValueTypeTests
         Assert.Equal(FlightState.Scheduled, flight.Status);
         Assert.Equal(flight.ScheduledDeparture, flight.EstimatedDeparture);
         Assert.Equal(flight.ScheduledArrival, flight.EstimatedArrival);
-        Assert.Null(flight.Gate);
+        Assert.Equal(Option.None<Gate>(), flight.Gate);
     }
 
     [Fact]

@@ -22,7 +22,7 @@ public sealed class ReplayTests
         var flight = AssertResult.Ok(FlightLifecycle.Replay(Scheduled(), events));
 
         Assert.Equal(FlightState.Landed, flight.Status);
-        Assert.Equal(Gate("15"), flight.Gate);
+        Assert.Equal(Option.Some(Gate("15")), flight.Gate);
         Assert.Equal(27, FlightQueries.DelayMinutes(flight));
     }
 

@@ -8,7 +8,7 @@ public interface IFlightStore
 {
     ImmutableList<Flight> All();
 
-    Flight? Find(string flightNumber);
+    Option<Flight> Find(string flightNumber);
 
     /// <summary>
     /// Atomically replaces the flight with the outcome of <paramref name="transition"/>.

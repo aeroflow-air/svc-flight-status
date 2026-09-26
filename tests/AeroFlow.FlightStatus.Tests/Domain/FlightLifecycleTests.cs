@@ -57,7 +57,7 @@ public sealed class FlightLifecycleTests
     {
         var flight = AssertResult.Ok(FlightLifecycle.Apply(Scheduled(), new GateAssigned(Gate("12"))));
 
-        Assert.Equal(Gate("12"), flight.Gate);
+        Assert.Equal(Option.Some(Gate("12")), flight.Gate);
         Assert.Equal(FlightState.Scheduled, flight.Status);
     }
 
@@ -72,7 +72,7 @@ public sealed class FlightLifecycleTests
     {
         var flight = AssertResult.Ok(FlightLifecycle.Apply(Boarding(), new GateChanged(Gate("14"))));
 
-        Assert.Equal(Gate("14"), flight.Gate);
+        Assert.Equal(Option.Some(Gate("14")), flight.Gate);
         Assert.Equal(FlightState.Boarding, flight.Status);
     }
 
@@ -115,7 +115,7 @@ public sealed class FlightLifecycleTests
         var flight = AssertResult.Ok(FlightLifecycle.Apply(Boarding(), new Departed(at)));
 
         Assert.Equal(FlightState.Departed, flight.Status);
-        Assert.Equal(at, flight.ActualDeparture);
+        Assert.Equal(Option.Some(at), flight.ActualDeparture);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public sealed class FlightLifecycleTests
         var flight = AssertResult.Ok(FlightLifecycle.Apply(Departed(), new Landed(Arrival)));
 
         Assert.Equal(FlightState.Landed, flight.Status);
-        Assert.Equal(Arrival, flight.ActualArrival);
+        Assert.Equal(Option.Some(Arrival), flight.ActualArrival);
     }
 
     [Fact]
@@ -143,8 +143,9 @@ public sealed class FlightLifecycleTests
     public void Landing_time_must_be_after_the_actual_departure()
     {
         var departed = Departed();
+        var departedAt = Assert.IsType<Option<DateTimeOffset>.Some>(departed.ActualDeparture).Value;
 
-        AssertResult.Failure<LandingBeforeDeparture>(FlightLifecycle.Apply(departed, new Landed(departed.ActualDeparture!.Value.AddMinutes(-1))));
+        AssertResult.Failure<LandingBeforeDeparture>(FlightLifecycle.Apply(departed, new Landed(departedAt.AddMinutes(-1))));
     }
 
     // --- Cancellation / diversion ------------------------------------------------
@@ -155,7 +156,7 @@ public sealed class FlightLifecycleTests
         var flight = AssertResult.Ok(FlightLifecycle.Apply(Scheduled(), new Cancelled("Weather")));
 
         Assert.Equal(FlightState.Cancelled, flight.Status);
-        Assert.Equal("Weather", flight.CancellationReason);
+        Assert.Equal(Option.Some("Weather"), flight.CancellationReason);
     }
 
     [Fact]
@@ -170,7 +171,7 @@ public sealed class FlightLifecycleTests
         var flight = AssertResult.Ok(FlightLifecycle.Apply(Departed(), new Diverted(Airport("MAN"))));
 
         Assert.Equal(FlightState.Diverted, flight.Status);
-        Assert.Equal(Airport("MAN"), flight.DivertedTo);
+        Assert.Equal(Option.Some(Airport("MAN")), flight.DivertedTo);
     }
 
     [Fact]
@@ -191,7 +192,7 @@ public sealed class FlightLifecycleTests
         var landed = AssertResult.Ok(FlightLifecycle.Apply(InStatus(FlightState.Diverted), new Landed(Arrival)));
 
         Assert.Equal(FlightState.Landed, landed.Status);
-        Assert.Equal(Airport("MAN"), landed.DivertedTo);
+        Assert.Equal(Option.Some(Airport("MAN")), landed.DivertedTo);
     }
 
     // --- Terminal states ----------------------------------------------------------
@@ -215,7 +216,7 @@ public sealed class FlightLifecycleTests
     [MemberData(nameof(TerminalStateEvents))]
     public void Cancelled_and_landed_flights_reject_further_events(FlightState status, FlightEvent evt)
     {
-        var flight = InStatus(status) with { Gate = Gate("12") };
+        var flight = InStatus(status) with { Gate = Option.Some(Gate("12")) };
 
         var error = AssertResult.Failure<InvalidTransition>(FlightLifecycle.Apply(flight, evt));
 

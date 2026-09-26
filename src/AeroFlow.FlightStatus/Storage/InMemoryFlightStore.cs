@@ -18,8 +18,8 @@ public sealed class InMemoryFlightStore : IFlightStore
 
     public ImmutableList<Flight> All() => Volatile.Read(ref _flights).Values.ToImmutableList();
 
-    public Flight? Find(string flightNumber) =>
-        Volatile.Read(ref _flights).GetValueOrDefault(flightNumber);
+    public Option<Flight> Find(string flightNumber) =>
+        Volatile.Read(ref _flights).Find(flightNumber);
 
     public Result<Flight> Update(string flightNumber, Func<Flight, Result<Flight>> transition)
     {

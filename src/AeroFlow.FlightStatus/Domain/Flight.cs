@@ -3,6 +3,7 @@ namespace AeroFlow.FlightStatus.Domain;
 /// <summary>
 /// Immutable snapshot of a flight. Create with <see cref="Schedule"/>; change it only by applying
 /// events through <see cref="FlightLifecycle"/>, which returns a new instance.
+/// Values that are not known yet (gate, actual times, diversion, cancellation reason) are <see cref="Option{T}"/>, never <c>null</c>.
 /// </summary>
 public sealed record Flight
 {
@@ -13,12 +14,12 @@ public sealed record Flight
     public required DateTimeOffset ScheduledArrival { get; init; }
     public required DateTimeOffset EstimatedDeparture { get; init; }
     public required DateTimeOffset EstimatedArrival { get; init; }
-    public DateTimeOffset? ActualDeparture { get; init; }
-    public DateTimeOffset? ActualArrival { get; init; }
-    public Gate? Gate { get; init; }
+    public Option<DateTimeOffset> ActualDeparture { get; init; } = Option.None<DateTimeOffset>();
+    public Option<DateTimeOffset> ActualArrival { get; init; } = Option.None<DateTimeOffset>();
+    public Option<Gate> Gate { get; init; } = Option.None<Gate>();
     public required FlightState Status { get; init; }
-    public IataCode? DivertedTo { get; init; }
-    public string? CancellationReason { get; init; }
+    public Option<IataCode> DivertedTo { get; init; } = Option.None<IataCode>();
+    public Option<string> CancellationReason { get; init; } = Option.None<string>();
 
     /// <summary>A new flight in <see cref="FlightState.Scheduled"/> with estimates equal to the schedule.</summary>
     public static Result<Flight> Schedule(

@@ -51,49 +51,50 @@ public static class FlightLifecycle
 
     private static Result<Flight> AssignGate(Flight f, GateAssigned e) => f.Status switch
     {
-        Scheduled or Delayed or Boarding when f.Gate is { } current => new GateAlreadyAssigned(current),
-        Scheduled or Delayed or Boarding => f with { Gate = e.Gate },
+        Scheduled or Delayed or Boarding when f.Gate is Option<Gate>.Some(var current) => new GateAlreadyAssigned(current),
+        Scheduled or Delayed or Boarding => f with { Gate = Option.Some(e.Gate) },
         _ => Invalid(f, e),
     };
 
     private static Result<Flight> ChangeGate(Flight f, GateChanged e) => f.Status switch
     {
-        Scheduled or Delayed or Boarding when f.Gate is null => new GateRequired(e.Name),
-        Scheduled or Delayed or Boarding => f with { Gate = e.Gate },
+        Scheduled or Delayed or Boarding when f.Gate is Option<Gate>.None => new GateRequired(e.Name),
+        Scheduled or Delayed or Boarding => f with { Gate = Option.Some(e.Gate) },
         _ => Invalid(f, e),
     };
 
     private static Result<Flight> StartBoarding(Flight f, BoardingStarted e) => f.Status switch
     {
-        Scheduled or Delayed when f.Gate is null => new GateRequired(e.Name),
+        Scheduled or Delayed when f.Gate is Option<Gate>.None => new GateRequired(e.Name),
         Scheduled or Delayed => f with { Status = Boarding },
         _ => Invalid(f, e),
     };
 
     private static Result<Flight> Depart(Flight f, Departed e) => f.Status switch
     {
-        Boarding => f with { Status = FlightState.Departed, ActualDeparture = e.ActualTime },
+        Boarding => f with { Status = FlightState.Departed, ActualDeparture = Option.Some(e.ActualTime) },
         _ => Invalid(f, e),
     };
 
     private static Result<Flight> Land(Flight f, Landed e) => f.Status switch
     {
-        FlightState.Departed or FlightState.Diverted when e.ActualTime <= f.ActualDeparture =>
-            new LandingBeforeDeparture(f.ActualDeparture.GetValueOrDefault(), e.ActualTime),
-        FlightState.Departed or FlightState.Diverted => f with { Status = FlightState.Landed, ActualArrival = e.ActualTime },
+        FlightState.Departed or FlightState.Diverted
+            when f.ActualDeparture is Option<DateTimeOffset>.Some(var departed) && e.ActualTime <= departed =>
+            new LandingBeforeDeparture(departed, e.ActualTime),
+        FlightState.Departed or FlightState.Diverted => f with { Status = FlightState.Landed, ActualArrival = Option.Some(e.ActualTime) },
         _ => Invalid(f, e),
     };
 
     private static Result<Flight> Cancel(Flight f, Cancelled e) => f.Status switch
     {
-        Scheduled or Delayed or Boarding => f with { Status = FlightState.Cancelled, CancellationReason = e.Reason },
+        Scheduled or Delayed or Boarding => f with { Status = FlightState.Cancelled, CancellationReason = Option.Some(e.Reason) },
         _ => Invalid(f, e),
     };
 
     private static Result<Flight> Divert(Flight f, Diverted e) => f.Status switch
     {
         FlightState.Departed when e.Airport == f.Destination => new DiversionToScheduledDestination(f.Destination),
-        FlightState.Departed => f with { Status = FlightState.Diverted, DivertedTo = e.Airport },
+        FlightState.Departed => f with { Status = FlightState.Diverted, DivertedTo = Option.Some(e.Airport) },
         _ => Invalid(f, e),
     };
 

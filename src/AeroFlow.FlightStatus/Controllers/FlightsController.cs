@@ -26,9 +26,9 @@ public sealed class FlightsController(IFlightStore store, TimeProvider time) : C
     [ProducesResponseType(typeof(FlightResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public ActionResult<FlightResponse> GetByFlightNumber(string flightNumber) =>
-        store.Find(flightNumber) is { } flight
-            ? Ok(FlightResponse.From(flight))
-            : Problem(new FlightNotFound(flightNumber));
+        store.Find(flightNumber)
+            .ToResult(() => new FlightNotFound(flightNumber))
+            .Match<ActionResult>(flight => Ok(FlightResponse.From(flight)), Problem);
 
     /// <summary>Departures board for an airport, ordered by estimated departure.</summary>
     [HttpGet("departures/{airport}")]

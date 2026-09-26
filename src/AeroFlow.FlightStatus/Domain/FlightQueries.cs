@@ -10,7 +10,7 @@ public static class FlightQueries
     /// Early departures count as zero.
     /// </summary>
     public static int DelayMinutes(Flight flight) =>
-        Math.Max(0, (int)Math.Floor(((flight.ActualDeparture ?? flight.EstimatedDeparture) - flight.ScheduledDeparture).TotalMinutes));
+        Math.Max(0, (int)Math.Floor((flight.ActualDeparture.Match(actual => actual, () => flight.EstimatedDeparture) - flight.ScheduledDeparture).TotalMinutes));
 
     /// <summary>
     /// Departures board for <paramref name="airport"/>: flights originating there, ordered by estimated
