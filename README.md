@@ -87,7 +87,7 @@ Then `curl http://localhost:8080/health`.
 - **No Pulumi** (or other IaC frameworks in-repo yet)
 - **No heavy shared framework** NuGet — composition stays in `Program.cs` so squads can delete or replace pieces freely
 
-Infrastructure as Bicep/AVM will land under [`infra/`](infra/README.md) later. Platform conventions live in the **platform-handbook**; reusable Actions come from **aeroflow-workflows**.
+Infrastructure as Bicep will land under [`infra/`](infra/README.md) later, using only governed platform modules (`br/platform:*`); see [ADR-0006](https://github.com/aeroflow-air/platform-handbook/blob/main/docs/decisions/0006-governed-bicep-modules-only.md). Platform conventions live in the **platform-handbook**; reusable Actions come from **aeroflow-workflows**.
 
 ## CI
 
@@ -99,7 +99,7 @@ This repository calls the reusable workflow in `aeroflow-workflows` (pinned to `
 | --- | --- |
 | platform-handbook | Portfolio standards, CLAUDE.md constraints, ADR process |
 | aeroflow-workflows | Shared GitHub Actions (dotnet-ci and decisions validation) |
-| `infra/` | Placeholder for Bicep/AVM — see `infra/README.md` |
+| `infra/` | Placeholder for Bicep (governed `br/platform:*` modules only, see [ADR-0006](https://github.com/aeroflow-air/platform-handbook/blob/main/docs/decisions/0006-governed-bicep-modules-only.md)) — see `infra/README.md` |
 
 ## Licence / ownership
 
