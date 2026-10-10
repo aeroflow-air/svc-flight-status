@@ -1,4 +1,7 @@
+using System.Reflection;
 using AeroFlow.FlightStatus.Storage;
+using Microsoft.OpenApi;
+using Scalar.AspNetCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +14,29 @@ builder.Logging.AddConsole();
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
+
+// API docs: Swashbuckle generates the OpenAPI document (net8 has no built-in generator; that arrived in .NET 9),
+// Scalar renders it at /scalar. Gated by ApiDocs:Enabled, which is true in appsettings.Development.json and
+// false by default, so Production never exposes the docs unless someone opts in via config.
+var apiDocsEnabled = builder.Configuration.GetValue("ApiDocs:Enabled", false);
+if (apiDocsEnabled)
+{
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = "AeroFlow Flight Status API",
+            Version = "v1",
+            Description = "Flight lifecycle and departures board for AeroFlow: look up flights, read an airport's departures, and apply lifecycle events (delay, gate, boarding, departed, landed, cancelled, diverted).",
+        });
+        var xml = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
+        if (File.Exists(xml))
+        {
+            options.IncludeXmlComments(xml);
+        }
+    });
+}
 
 // Edges: the clock and the store are the only side effects; the domain stays pure.
 builder.Services.AddSingleton(TimeProvider.System);
@@ -46,6 +72,12 @@ if (!app.Environment.IsDevelopment())
 
 app.MapHealthChecks("/health");
 app.MapControllers();
+
+if (apiDocsEnabled)
+{
+    app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");
+    app.MapScalarApiReference(options => options.WithTitle("AeroFlow Flight Status API"));
+}
 
 app.Run();
 
