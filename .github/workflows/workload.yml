@@ -1,0 +1,26 @@
+# Thin caller for the shared deploy workflow (ADR-0009, platform-handbook #58).
+# Validates workload.yaml, generates the Bicep and runs bicep build + lint.
+# No Azure login, no what-if, no deployment.
+#
+# TEMPORARY PIN: commit 1fe7eaf25a0522325fe5e75a65160bcf1a8e308c on the
+# aeroflow-workflows feat/workload-generator branch (aeroflow-workflows#7).
+# Switch both refs to the release tag after that PR is merged and tagged.
+
+name: Workload
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  workload:
+    uses: aeroflow-air/aeroflow-workflows/.github/workflows/workload-deploy.yml@1fe7eaf25a0522325fe5e75a65160bcf1a8e308c
+    with:
+      workflows_ref: 1fe7eaf25a0522325fe5e75a65160bcf1a8e308c   # keep in sync with the uses: pin above
+    permissions:
+      contents: read
