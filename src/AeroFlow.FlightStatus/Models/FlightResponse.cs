@@ -6,6 +6,20 @@ namespace AeroFlow.FlightStatus.Models;
 /// API shape for a flight. Kept separate from the domain <see cref="Flight"/> so either can evolve.
 /// Domain <see cref="Option{T}"/> values become nullable here, because JSON represents absence as <c>null</c>.
 /// </summary>
+/// <param name="FlightNumber">Flight number.</param>
+/// <param name="Origin">IATA code of the origin airport.</param>
+/// <param name="Destination">IATA code of the destination airport.</param>
+/// <param name="Status">Current lifecycle status.</param>
+/// <param name="ScheduledDeparture">Scheduled departure time.</param>
+/// <param name="ScheduledArrival">Scheduled arrival time.</param>
+/// <param name="EstimatedDeparture">Current estimated departure time.</param>
+/// <param name="EstimatedArrival">Current estimated arrival time.</param>
+/// <param name="ActualDeparture">Actual departure time, once departed.</param>
+/// <param name="ActualArrival">Actual arrival time, once landed.</param>
+/// <param name="Gate">Assigned gate, or null if none yet.</param>
+/// <param name="DelayMinutes">Minutes between scheduled and estimated departure.</param>
+/// <param name="DivertedTo">IATA code of the diversion airport, if diverted.</param>
+/// <param name="CancellationReason">Reason given, if cancelled.</param>
 public sealed record FlightResponse(
     string FlightNumber,
     string Origin,

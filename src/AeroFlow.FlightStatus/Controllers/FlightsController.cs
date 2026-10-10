@@ -14,6 +14,7 @@ namespace AeroFlow.FlightStatus.Controllers;
 public sealed class FlightsController(IFlightStore store, TimeProvider time) : ControllerBase
 {
     /// <summary>Lightweight hello for the flight-status domain — proves the API is up.</summary>
+    /// <response code="200">Service name, message and the server's current UTC time.</response>
     [HttpGet("ping")]
     [ProducesResponseType(typeof(FlightPingResponse), StatusCodes.Status200OK)]
     public ActionResult<FlightPingResponse> Ping() =>
@@ -22,6 +23,10 @@ public sealed class FlightsController(IFlightStore store, TimeProvider time) : C
             Message: "Flight status probe OK",
             UtcNow: time.GetUtcNow()));
 
+    /// <summary>Gets a single flight by its flight number.</summary>
+    /// <param name="flightNumber">Flight number, for example <c>AF204</c>.</param>
+    /// <response code="200">The flight.</response>
+    /// <response code="404">No flight with that number.</response>
     [HttpGet("{flightNumber}")]
     [ProducesResponseType(typeof(FlightResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -31,6 +36,9 @@ public sealed class FlightsController(IFlightStore store, TimeProvider time) : C
             .Match<ActionResult>(flight => Ok(FlightResponse.From(flight)), Problem);
 
     /// <summary>Departures board for an airport, ordered by estimated departure.</summary>
+    /// <param name="airport">Three-letter IATA airport code, for example <c>LGW</c>.</param>
+    /// <response code="200">The departures board.</response>
+    /// <response code="400">The airport code is not a valid IATA code.</response>
     [HttpGet("departures/{airport}")]
     [ProducesResponseType(typeof(DeparturesBoardResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -43,6 +51,16 @@ public sealed class FlightsController(IFlightStore store, TimeProvider time) : C
             .Match<ActionResult>(Ok, Problem);
 
     /// <summary>Applies a lifecycle event to a flight and returns the updated flight.</summary>
+    /// <remarks>
+    /// <c>type</c> is one of <c>delay</c>, <c>gate-assigned</c>, <c>gate-changed</c>, <c>boarding-started</c>,
+    /// <c>departed</c>, <c>landed</c>, <c>cancelled</c> or <c>diverted</c>. Only the fields that type needs are read.
+    /// </remarks>
+    /// <param name="flightNumber">Flight number, for example <c>AF455</c>.</param>
+    /// <param name="request">The event to apply.</param>
+    /// <response code="200">The flight after the event was applied.</response>
+    /// <response code="400">The body is malformed or missing a field the event type needs.</response>
+    /// <response code="404">No flight with that number.</response>
+    /// <response code="409">The event is not allowed in the flight's current state (for example, a cancelled flight departing).</response>
     [HttpPost("{flightNumber}/events")]
     [ProducesResponseType(typeof(FlightResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

@@ -8,11 +8,17 @@ namespace AeroFlow.FlightStatus.Models;
 /// </summary>
 public sealed record FlightEventRequest
 {
+    /// <summary>Event type: delay, gate-assigned, gate-changed, boarding-started, departed, landed, cancelled or diverted.</summary>
     public string? Type { get; init; }
+    /// <summary>New estimated departure. Required for <c>delay</c>.</summary>
     public DateTimeOffset? NewEstimatedDeparture { get; init; }
+    /// <summary>Gate, for example <c>A12</c>. Required for <c>gate-assigned</c> and <c>gate-changed</c>.</summary>
     public string? Gate { get; init; }
+    /// <summary>Actual time of the event. Required for <c>departed</c> and <c>landed</c>.</summary>
     public DateTimeOffset? ActualTime { get; init; }
+    /// <summary>Cancellation reason. Required for <c>cancelled</c>.</summary>
     public string? Reason { get; init; }
+    /// <summary>IATA code of the diversion airport. Required for <c>diverted</c>.</summary>
     public string? Airport { get; init; }
 
     public static readonly IReadOnlyList<string> KnownTypes =
