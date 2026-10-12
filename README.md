@@ -85,6 +85,24 @@ curl -X POST http://localhost:8080/api/flights/AF517/events \
 
 This service follows [ADR-0004: functional-style C#](https://github.com/aeroflow-air/platform-handbook/blob/main/docs/decisions/0004-functional-style-csharp.md). It uses immutable records, a pure domain core with side effects at the edges (controller, store and `TimeProvider`), explicit `Result` outcomes rather than exceptions, and `Option` rather than `null` for absent values (nullable types appear only in the HTTP request and response records). It uses only the BCL, with no FP library.
 
+## Flight events (Service Bus)
+
+When the service runs inside the AeroFlow Aspire AppHost ([`aeroflow-local`](https://github.com/aeroflow-air/aeroflow-local)), it follows the flight simulator on the Azure Service Bus topic `flight-events`, using its own subscription `flight-status`. The processor is a hosted service ([`Messaging/FlightEventsProcessor.cs`](src/AeroFlow.FlightStatus/Messaging/FlightEventsProcessor.cs)) built on the Aspire client integration (`AddAzureServiceBusClient("messaging")`). It only starts when a `messaging` connection string is configured, so `dotnet run`, the container and the tests run without Service Bus.
+
+[`FlightEventHandler`](src/AeroFlow.FlightStatus/Messaging/FlightEventHandler.cs) applies each event to the same in-memory store the API reads, through `FlightLifecycle`:
+
+| Event | Effect |
+| --- | --- |
+| `Scheduled` | adds the flight (scheduled arrival = departure + 90 minutes; a finished flight with the same number is replaced) |
+| `Delayed` | `DelayAnnounced` at scheduled departure + `delayMinutes` |
+| `Boarding` | `BoardingStarted`; if no gate is known yet it first assigns the placeholder gate `TBA` |
+| `Departed`, `Landed` | `Departed` / `Landed` with the event's `occurredAt` |
+| `Cancelled` | `Cancelled` with the event's reason |
+
+Rejections (for example `invalid_transition`, `flight_not_found` for flights scheduled before the service started) are logged as warnings and the message is completed; a body that can't be read is dead-lettered. Watch it with `GET /api/flights/{flightNumber}` or the departures board while the simulator runs.
+
+Settings (`FlightEvents` section): `Topic` (`flight-events`), `Subscription` (`flight-status`), `DefaultBlockMinutes` (90), `PlaceholderGate` (`TBA`). The event contract is a local copy of `AeroFlow.Local.FlightEvents.FlightEvent`.
+
 ## Container
 
 ```bash

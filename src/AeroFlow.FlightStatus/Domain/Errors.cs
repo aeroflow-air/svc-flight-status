@@ -51,3 +51,6 @@ public sealed record LandingBeforeDeparture(DateTimeOffset Departed, DateTimeOff
 
 public sealed record DiversionToScheduledDestination(IataCode Destination)
     : RuleViolation("diversion_to_destination", $"Cannot divert to {Destination}; it is already the scheduled destination.");
+
+public sealed record FlightAlreadyActive(string FlightNumber, FlightState Status)
+    : RuleViolation("flight_already_active", $"Flight '{FlightNumber}' is already {Status}; it can only be rescheduled once it has finished.");
