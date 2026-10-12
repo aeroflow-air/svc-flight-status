@@ -1,4 +1,5 @@
 using System.Reflection;
+using AeroFlow.FlightStatus.Messaging;
 using AeroFlow.FlightStatus.Storage;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
@@ -42,6 +43,17 @@ if (apiDocsEnabled)
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IFlightStore>(sp =>
     new InMemoryFlightStore(DemoFlights.Create(sp.GetRequiredService<TimeProvider>().GetUtcNow())));
+
+// Flight events (svc-flight-status#6): follow the simulator on the flight-events topic. Only wired when a
+// "messaging" connection string exists (the aeroflow-local AppHost supplies it via WithReference), so a plain
+// `dotnet run`, the container and the tests still start without Service Bus.
+builder.Services.Configure<FlightEventsOptions>(builder.Configuration.GetSection(FlightEventsOptions.SectionName));
+builder.Services.AddSingleton<FlightEventHandler>();
+if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString(FlightEventsOptions.ConnectionName)))
+{
+    builder.AddAzureServiceBusClient(FlightEventsOptions.ConnectionName);
+    builder.Services.AddHostedService<FlightEventsProcessor>();
+}
 
 // ---------------------------------------------------------------------------
 // OpenTelemetry stub — enable when the squad wires an exporter (OTLP / App Insights).

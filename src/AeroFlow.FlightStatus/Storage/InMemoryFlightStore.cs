@@ -21,6 +21,25 @@ public sealed class InMemoryFlightStore : IFlightStore
     public Option<Flight> Find(string flightNumber) =>
         Volatile.Read(ref _flights).Find(flightNumber);
 
+    public Result<Flight> Add(Flight flight)
+    {
+        while (true)
+        {
+            var snapshot = Volatile.Read(ref _flights);
+            if (snapshot.TryGetValue(flight.FlightNumber, out var existing)
+                && existing.Status is not (FlightState.Landed or FlightState.Cancelled or FlightState.Diverted))
+            {
+                return new FlightAlreadyActive(existing.FlightNumber, existing.Status);
+            }
+
+            var updated = snapshot.Remove(flight.FlightNumber).Add(flight.FlightNumber, flight);
+            if (ReferenceEquals(Interlocked.CompareExchange(ref _flights, updated, snapshot), snapshot))
+            {
+                return flight;
+            }
+        }
+    }
+
     public Result<Flight> Update(string flightNumber, Func<Flight, Result<Flight>> transition)
     {
         while (true)
