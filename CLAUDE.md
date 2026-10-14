@@ -1,6 +1,6 @@
 # svc-flight-status
 
-Tracks each flight's status (scheduled → boarding → departed → landed, delays, cancellations) and serves the departures board.
+Tracks each flight's status (scheduled → boarding → departed → landed, delays, cancellations) and serves the departures and arrivals boards.
 
 ## Conventions (read before changing code)
 

@@ -23,4 +23,16 @@ public static class FlightQueries
             .OrderBy(f => f.EstimatedDeparture)
             .ThenBy(f => f.FlightNumber, StringComparer.Ordinal)
             .ToImmutableList();
+
+    /// <summary>
+    /// Arrivals board for <paramref name="airport"/>: flights heading there, ordered by estimated arrival (then flight
+    /// number). Landed and cancelled flights stay on; diverted flights are left off because they won't arrive here.
+    /// </summary>
+    public static ImmutableList<Flight> ArrivalsBoard(IEnumerable<Flight> flights, IataCode airport) =>
+        flights
+            .Where(f => f.Destination == airport)
+            .Where(f => f.Status is not FlightState.Diverted)
+            .OrderBy(f => f.EstimatedArrival)
+            .ThenBy(f => f.FlightNumber, StringComparer.Ordinal)
+            .ToImmutableList();
 }

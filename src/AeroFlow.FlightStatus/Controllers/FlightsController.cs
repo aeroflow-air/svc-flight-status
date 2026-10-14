@@ -50,6 +50,22 @@ public sealed class FlightsController(IFlightStore store, TimeProvider time) : C
                 Departures: FlightQueries.DeparturesBoard(store.All(), code).ConvertAll(DepartureBoardEntry.From)))
             .Match<ActionResult>(Ok, Problem);
 
+    /// <summary>Arrivals board for an airport, ordered by estimated arrival.</summary>
+    /// <remarks>Landed and cancelled flights are included; diverted flights are not.</remarks>
+    /// <param name="airport">Three-letter IATA airport code, for example <c>LHR</c>.</param>
+    /// <response code="200">The arrivals board.</response>
+    /// <response code="400">The airport code is not a valid IATA code.</response>
+    [HttpGet("arrivals/{airport}")]
+    [ProducesResponseType(typeof(ArrivalsBoardResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public ActionResult<ArrivalsBoardResponse> GetArrivals(string airport) =>
+        IataCode.Parse(airport)
+            .Map(code => new ArrivalsBoardResponse(
+                Airport: code.Value,
+                GeneratedAt: time.GetUtcNow(),
+                Arrivals: FlightQueries.ArrivalsBoard(store.All(), code).ConvertAll(ArrivalBoardEntry.From)))
+            .Match<ActionResult>(Ok, Problem);
+
     /// <summary>Applies a lifecycle event to a flight and returns the updated flight.</summary>
     /// <remarks>
     /// <c>type</c> is one of <c>delay</c>, <c>gate-assigned</c>, <c>gate-changed</c>, <c>boarding-started</c>,
