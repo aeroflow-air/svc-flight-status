@@ -60,4 +60,35 @@ public sealed class FlightQueriesTests
 
         Assert.Equal([FlightState.Departed, FlightState.Cancelled], board.Select(f => f.Status).Order());
     }
+
+    [Fact]
+    public void ArrivalsBoard_filters_by_destination_and_orders_by_estimated_arrival()
+    {
+        var late = AssertResult.Ok(FlightLifecycle.Apply(
+            Scheduled("AF200", "EDI", "LGW", Departure),
+            new DelayAnnounced(Departure.AddMinutes(90))));
+        var early = Scheduled("AF201", "DUB", "LGW", Departure.AddMinutes(30));
+        var departing = Scheduled("AF202", "LGW", "AMS", Departure);
+
+        var board = FlightQueries.ArrivalsBoard([late, departing, early], Airport("LGW"));
+
+        Assert.Equal(["AF201", "AF200"], board.Select(f => f.FlightNumber));
+    }
+
+    [Fact]
+    public void ArrivalsBoard_keeps_landed_and_cancelled_flights_but_leaves_off_diverted_ones()
+    {
+        var flights = new[]
+        {
+            InStatus(FlightState.Landed),
+            InStatus(FlightState.Diverted),
+            InStatus(FlightState.Cancelled),
+            InStatus(FlightState.Departed),
+        };
+        var destination = flights[0].Destination;
+
+        var board = FlightQueries.ArrivalsBoard(flights, destination);
+
+        Assert.Equal([FlightState.Departed, FlightState.Landed, FlightState.Cancelled], board.Select(f => f.Status).Order());
+    }
 }

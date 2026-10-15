@@ -26,6 +26,7 @@ public sealed class ApiDocsTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.True(docPaths.TryGetProperty("/api/flights/ping", out _), "missing path /api/flights/ping");
         Assert.True(docPaths.TryGetProperty("/api/flights/{flightNumber}", out _), "missing path /api/flights/{flightNumber}");
         Assert.True(docPaths.TryGetProperty("/api/flights/departures/{airport}", out _), "missing path /api/flights/departures/{airport}");
+        Assert.True(docPaths.TryGetProperty("/api/flights/arrivals/{airport}", out _), "missing path /api/flights/arrivals/{airport}");
         Assert.True(docPaths.TryGetProperty("/api/flights/{flightNumber}/events", out _), "missing path /api/flights/{flightNumber}/events");
     }
 

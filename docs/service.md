@@ -8,7 +8,7 @@
 | Owner | AeroFlow platform (Tony Joanes) |
 | Status | prototype, local only |
 | Runs in | aeroflow-local AppHost resource `svc-flight-status`; Container Apps later (ADR-0007) |
-| Last reviewed | 2026-10-12 |
+| Last reviewed | 2026-10-14 |
 
 Written to the [service docs standard](https://github.com/aeroflow-air/platform-handbook/blob/main/docs/standards/service-docs.md). The airport-wide picture is in the [airport overview](https://github.com/aeroflow-air/platform-handbook/blob/main/docs/architecture/airport-overview.md).
 
@@ -41,7 +41,7 @@ flowchart LR
   S -->|FlightLifecycle.Apply| D[Domain: Flight, FlightState]
 ```
 
-- **Domain**: `Flight` (immutable, `Option` for unknowns), states `Scheduled`, `Delayed`, `Boarding`, `Departed`, `Landed`, `Cancelled`, `Diverted`; events `DelayAnnounced`, `GateAssigned`, `GateChanged`, `BoardingStarted`, `Departed`, `Landed`, `Cancelled`, `Diverted`; queries `DelayMinutes` and `DeparturesBoard`.
+- **Domain**: `Flight` (immutable, `Option` for unknowns), states `Scheduled`, `Delayed`, `Boarding`, `Departed`, `Landed`, `Cancelled`, `Diverted`; events `DelayAnnounced`, `GateAssigned`, `GateChanged`, `BoardingStarted`, `Departed`, `Landed`, `Cancelled`, `Diverted`; queries `DelayMinutes`, `DeparturesBoard` and `ArrivalsBoard`.
 - **Messaging**: hosted processor (one message at a time, manual completion) and a handler that maps simulator events onto domain events.
 - **API**: one controller over the same store.
 
@@ -55,6 +55,7 @@ flowchart LR
 | GET | `/api/flights/ping` | probe | 200 |
 | GET | `/api/flights/{flightNumber}` | one flight | 200, 404 |
 | GET | `/api/flights/departures/{airport}` | departures board, by estimated departure, excluding landed and diverted | 200, 400 |
+| GET | `/api/flights/arrivals/{airport}` | arrivals board, by estimated arrival, including landed and cancelled, excluding diverted. Read by the ops dashboard on startup (platform-handbook#74) | 200, 400 |
 | POST | `/api/flights/{flightNumber}/events` | apply a lifecycle event (`type`: `delay`, `gate-assigned`, `gate-changed`, `boarding-started`, `departed`, `landed`, `cancelled`, `diverted`) | 200, 400, 404, 409 |
 
 Errors are `application/problem+json` with a `code` extension: 400 (`invalid_airport_code`, `invalid_gate`, `invalid_flight_number`, ...), 404 (`flight_not_found`), 409 (`invalid_transition`, `gate_required`, `gate_already_assigned`, `delay_not_later`, `landing_before_departure`, `diversion_to_destination`, `flight_already_active`). Reference docs: `/scalar` and `/openapi/v1.json` when `ApiDocs:Enabled` is true.

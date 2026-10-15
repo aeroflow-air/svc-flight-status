@@ -72,6 +72,33 @@ public sealed class FlightsApiTests : IClassFixture<WebApplicationFactory<Progra
     }
 
     [Fact]
+    public async Task Arrivals_board_lists_flights_into_that_airport_in_estimated_arrival_order()
+    {
+        using var client = CreateClient();
+
+        using var body = await GetJson(client, "/api/flights/arrivals/edi");
+
+        Assert.Equal("EDI", body.RootElement.GetProperty("airport").GetString());
+        var arrivals = body.RootElement.GetProperty("arrivals").EnumerateArray().ToList();
+        // AF206 has landed, AF204 is still to come; AF629 diverted to MAN so it is left off.
+        Assert.Equal(["AF206", "AF204"], arrivals.Select(a => a.GetProperty("flightNumber").GetString()));
+        Assert.Equal("Landed", arrivals[0].GetProperty("status").GetString());
+        Assert.Equal(JsonValueKind.String, arrivals[0].GetProperty("actualArrival").ValueKind);
+        Assert.Equal(JsonValueKind.Null, arrivals[1].GetProperty("actualArrival").ValueKind);
+        Assert.Equal("LGW", arrivals[1].GetProperty("origin").GetString());
+    }
+
+    [Fact]
+    public async Task Arrivals_board_for_invalid_airport_returns_400_problem()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/api/flights/arrivals/L1W");
+
+        await AssertProblem(response, HttpStatusCode.BadRequest, "invalid_airport_code");
+    }
+
+    [Fact]
     public async Task Posting_a_valid_delay_returns_the_updated_flight()
     {
         using var client = CreateClient();
