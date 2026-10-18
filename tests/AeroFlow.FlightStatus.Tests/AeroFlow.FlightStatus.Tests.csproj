@@ -20,4 +20,8 @@
     <ProjectReference Include="..\..\src\AeroFlow.FlightStatus\AeroFlow.FlightStatus.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Contracts\flight-events\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
