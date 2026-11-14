@@ -123,7 +123,7 @@ Infrastructure as Bicep will land under [`infra/`](infra/README.md) later, using
 
 ## CI
 
-This repository calls the reusable workflow in `aeroflow-workflows` (pinned to `@v0.1.0`) via `.github/workflows/ci.yml`, targeting `AeroFlow.FlightStatus.sln`.
+This repository calls the reusable workflow in `aeroflow-workflows` (pinned to `@v0.5.0`) via `.github/workflows/ci.yml`, targeting `AeroFlow.FlightStatus.sln`.
 
 ## Pointers
 
