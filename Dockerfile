@@ -3,8 +3,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
+COPY nuget.config ./
 COPY Directory.Build.props ./
 COPY AeroFlow.FlightStatus.sln ./
+COPY lib/packages/ lib/packages/
 COPY src/AeroFlow.FlightStatus/AeroFlow.FlightStatus.csproj src/AeroFlow.FlightStatus/
 COPY tests/AeroFlow.FlightStatus.Tests/AeroFlow.FlightStatus.Tests.csproj tests/AeroFlow.FlightStatus.Tests/
 
