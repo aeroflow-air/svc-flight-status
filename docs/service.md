@@ -51,7 +51,8 @@ flowchart LR
 
 | Method | Route | Purpose | Responses |
 | --- | --- | --- | --- |
-| GET | `/health` | liveness | 200 |
+| GET | `/health` | readiness (and liveness) | 200 |
+| GET | `/alive` | liveness | 200 |
 | GET | `/api/flights/ping` | probe | 200 |
 | GET | `/api/flights/{flightNumber}` | one flight | 200, 404 |
 | GET | `/api/flights/departures/{airport}` | departures board, by estimated departure, excluding landed and diverted | 200, 400 |
@@ -82,6 +83,42 @@ Contract: `Messaging/FlightEventMessage.cs`, a **local copy** of `AeroFlow.Local
 | `FlightEvents:DefaultBlockMinutes` | 90 | scheduled flight time |
 | `FlightEvents:PlaceholderGate` | `TBA` | gate used at boarding |
 | `ApiDocs:Enabled` | false (true in Development) | Scalar and OpenAPI |
+
+### Observability
+
+This service consumes `AeroFlow.ServiceDefaults` from a committed local package feed, pinned in [`lib/README.md`](../lib/README.md). Conventions are in [service-defaults.md](service-defaults.md). `Program` calls `AddServiceDefaults()` and `MapDefaultEndpoints()`, so `/health` and `/alive` are served in every environment. HTTP requests are logged automatically; Service Bus publish and consume paths emit platform events 2000–2003 via `IObservabilityLog`. W3C trace context on Service Bus messages is a later follow-up and is not wired here.
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `Observability:ServiceName` | `svc-flight-status` | resource attribute `service.name` |
+| `Observability:ServiceVersion` | entry assembly informational version | `service.version` |
+| `Observability:Environment` | `local` | `deployment.environment` (falls back to the host environment if unset) |
+| `Observability:Squad` | `platform` | `aeroflow.squad` |
+
+#### Event catalogue
+
+**Platform** events (category `AeroFlow.ServiceDefaults`):
+
+| Event id | Name | Level | When |
+| --- | --- | --- | --- |
+| 1000 | HttpRequestCompleted | Information | Each HTTP request except `/health` and `/alive` |
+| 1001 | HttpRequestFailed | Warning | The request ended in a 5xx status |
+| 1002 | HttpRequestUnhandled | Error | An unhandled exception escaped the pipeline |
+| 2000 | MessagePublished | Information | A Service Bus message was sent |
+| 2001 | MessagePublishFailed | Error | Sending a Service Bus message failed |
+| 2002 | MessageConsumed | Information | A Service Bus message was handled (`applied`, `rejected`, `ignored`, or `dead-lettered`) |
+| 2003 | MessageConsumeFailed | Error | Handling a Service Bus message failed |
+| 3000 | OperationFailed | Error | An unexpected failure outside a single message (processor error, unloading tick) |
+
+**Business** events (this service, event ids at or above 10,000; domain code stays log-free):
+
+| Event id | Level | Message | When |
+| --- | --- | --- | --- |
+| 10000 | Information | `Listening for flight events on {Topic}/{Subscription}` | Processor started |
+| 10001 | Information | `{FlightNumber} is now {Status} after {EventType}` | Event applied |
+| 10002 | Warning | `{EventType} for {FlightNumber} rejected: {Code} {Message}` | Business rejection |
+| 10003 | Warning | `Dead-lettered unreadable flight event {MessageId}` | Body could not be read |
+| 10004 | Warning | `Service Bus processor error ({Source})` | SDK processor error |
 
 ## Outputs
 
@@ -119,7 +156,7 @@ Delivery is at least once; the handler is not idempotent by event id and relies 
 
 - Standalone: `dotnet run --project src/AeroFlow.FlightStatus`, then `curl http://localhost:8080/api/flights/AF204` or `/api/flights/departures/LGW`; Scalar at `/scalar`.
 - With the airport: clone next to `aeroflow-local` and run its AppHost. Healthy logs: `Listening for flight events on flight-events/flight-status`, then `BA1234 is now Departed after Departed`. Try `/api/flights/departures/LHR`.
-- Tests: `dotnet test` covers lifecycle rules, replay, queries, value types, the API, API docs, health and the event handler.
+- Tests: `dotnet test` covers lifecycle rules, replay, queries, value types, the API, API docs, health, `/alive`, the observability contract and the event handler.
 
 ## Known gaps
 

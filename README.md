@@ -1,6 +1,6 @@
 # AeroFlow Flight Status
 
-Thin ASP.NET Core Web API for flight-status lookups in the [AeroFlow Air](https://github.com/aeroflow-air) portfolio. Health checks, structured logging, ProblemDetails, and a stub for OpenTelemetry — without a shared framework package.
+Thin ASP.NET Core Web API for flight-status lookups in the [AeroFlow Air](https://github.com/aeroflow-air) portfolio. Health checks, structured logging, ProblemDetails, and OpenTelemetry via `AeroFlow.ServiceDefaults` (local package feed in `lib/packages/`).
 
 ## Local run
 
@@ -12,7 +12,7 @@ dotnet run --project src/AeroFlow.FlightStatus
 ```
 
 - API: `http://localhost:8080` (or the port shown in the console)
-- Health: `GET /health`
+- Health: `GET /health` and `GET /alive`
 - Flight probe: `GET /api/flights/ping`
 - Flight lookup, departures board and lifecycle events: see [Flight lifecycle](#flight-lifecycle)
 
