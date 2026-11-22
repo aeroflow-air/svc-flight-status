@@ -162,5 +162,5 @@ Delivery is at least once; the handler is not idempotent by event id and relies 
 
 - Gate is always `TBA` for simulated flights: svc-gate-allocation publishes no gate events ([overview](https://github.com/aeroflow-air/platform-handbook/blob/main/docs/architecture/airport-overview.md#known-gaps)).
 - Event contract is a local copy ([platform-handbook#71](https://github.com/aeroflow-air/platform-handbook/issues/71)).
-- `workload.yaml` cannot declare the subscription ([platform-handbook#64](https://github.com/aeroflow-air/platform-handbook/issues/64)).
+- `workload.yaml` declares the `flight-events` / `flight-status` subscription, and `workload.yml` validates it and generates the Bicep. Deploying it is still open ([platform-handbook#64](https://github.com/aeroflow-air/platform-handbook/issues/64)).
 - Publishes no flight status events of its own; in-memory state; no authentication.

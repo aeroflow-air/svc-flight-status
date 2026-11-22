@@ -29,8 +29,8 @@ departures and arrivals boards. Owner: platform squad. Standards: [ADR-0004](htt
 - Handlers are idempotent: Service Bus redelivers. There is no processed-id store; `FlightLifecycle` rejects an
   illegal or repeated transition, the flight is unchanged and the handler returns `Rejected(error)`, never throws.
   An unknown `FlightEventType` or empty body is dead-lettered as `unreadable`; update this service first.
-- Handler and contract tests cover this (`tests/.../Messaging`, `Contracts/flight-events`). * `workload.yaml` is
-  schema-checked (`workload.yml`); it doesn't declare `queue`/`events:` yet, which is a separate fix.
+- Handler and contract tests cover this (`tests/.../Messaging`, `Contracts/flight-events`). * `workload.yaml` declares
+  `queue` + `events:` (subscribes `flight-events`/`flight-status`, publishes nothing); `workload.yml` checks it.
 
 ## Build, test, docs, skills
 `dotnet build -c Release && dotnet test`; domain tests need no mocks. Update `docs/service.md` with behaviour changes.
