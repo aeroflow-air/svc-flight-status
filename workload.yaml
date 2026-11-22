@@ -2,10 +2,17 @@
 # Schema: aeroflow-workflows schemas/workload.schema.json, versioned with its tags.
 # Checked by .github/workflows/workload.yml, which generates the Bicep.
 #
-# Requests one container app and nothing else. The hosting module
-# (container-app-service, ADR-0007) is not published, so this file does not
-# pin br/platform; CI builds against aeroflow-workflows' local stand-in.
+# Requests one container app plus Service Bus event wiring (ADR-0019):
+# subscribe to flight-events on the flight-status subscription
+# (FlightEventsOptions). It publishes nothing today, so it declares no topic of
+# its own. The hosting module (container-app-service, ADR-0007) is not
+# published, so this file does not pin br/platform; CI builds against
+# aeroflow-workflows' local stand-in.
 workload: svc-flight-status
 repo: svc-flight-status
 dataClass: internal
-capabilities: [http]
+capabilities: [http, queue]
+events:
+  subscribes:
+    - topic: flight-events
+      subscription: flight-status
