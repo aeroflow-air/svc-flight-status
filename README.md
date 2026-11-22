@@ -1,6 +1,6 @@
 # AeroFlow Flight Status
 
-Thin ASP.NET Core Web API for flight-status lookups in the [AeroFlow Air](https://github.com/aeroflow-air) portfolio. Health checks, structured logging, ProblemDetails, and OpenTelemetry via `AeroFlow.ServiceDefaults` (local package feed in `lib/packages/`).
+Thin ASP.NET Core Web API for flight-status lookups in the [AeroFlow Air](https://github.com/aeroflow-air) portfolio. Health checks, structured logging, ProblemDetails, and OpenTelemetry via `AeroFlow.ServiceDefaults` 0.1.1 from the org GitHub Packages feed.
 
 ## Local run
 
@@ -103,6 +103,32 @@ Rejections (for example `invalid_transition`, `flight_not_found` for flights sch
 
 Settings (`FlightEvents` section): `Topic` (`flight-events`), `Subscription` (`flight-status`), `DefaultBlockMinutes` (90), `PlaceholderGate` (`TBA`). The event contract is a local copy of `AeroFlow.Local.FlightEvents.FlightEvent`.
 
+
+## NuGet feed (GitHub Packages)
+
+`AeroFlow.ServiceDefaults` 0.1.1 comes from `https://nuget.pkg.github.com/aeroflow-air/index.json`. GitHub Packages requires authentication even though the org and packages are public. Do not put a token in the committed `nuget.config`.
+
+Create a personal access token with the `read:packages` scope (a classic token, or a fine-grained token with read access to packages in `aeroflow-air`). This repository does not create or store that token. Add the source to your **user-level** NuGet config:
+
+```bash
+dotnet nuget add source https://nuget.pkg.github.com/aeroflow-air/index.json \
+  --name aeroflow-air \
+  --username YOUR_GITHUB_USERNAME \
+  --password YOUR_TOKEN \
+  --store-password-in-clear-text
+```
+
+If the source already exists, update the credentials instead of adding it twice. More detail is in the [lib-service-defaults consume guide](https://github.com/aeroflow-air/lib-service-defaults#consume).
+
+CI calls `aeroflow-workflows` `dotnet-ci.yml@v0.7.0` with `github-packages: true` and job permission `packages: read`.
+
+For container builds, pass the same token as a BuildKit secret (it is not written into an image layer):
+
+```bash
+export NUGET_AUTH_TOKEN=...   # PAT with read:packages; do not commit this
+docker build --secret id=nuget_auth_token,env=NUGET_AUTH_TOKEN -t <image> .
+```
+
 ## Container
 
 ```bash
@@ -123,7 +149,7 @@ Infrastructure as Bicep will land under [`infra/`](infra/README.md) later, using
 
 ## CI
 
-This repository calls the reusable workflow in `aeroflow-workflows` (pinned to `@v0.5.0`) via `.github/workflows/ci.yml`, targeting `AeroFlow.FlightStatus.sln`.
+This repository calls the reusable workflow in `aeroflow-workflows` (`dotnet-ci.yml@v0.7.0` with `github-packages: true` and `packages: read`) via `.github/workflows/ci.yml`, targeting `AeroFlow.FlightStatus.sln`.
 
 ## Pointers
 
