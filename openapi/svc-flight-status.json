@@ -1,0 +1,662 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "AeroFlow Flight Status API",
+    "description": "Flight lifecycle and departures board for AeroFlow: look up flights, read an airport\u0027s departures, and apply lifecycle events (delay, gate, boarding, departed, landed, cancelled, diverted).",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/flights/ping": {
+      "get": {
+        "tags": [
+          "Flights"
+        ],
+        "summary": "Lightweight hello for the flight-status domain \u2014 proves the API is up.",
+        "responses": {
+          "200": {
+            "description": "Service name, message and the server\u0027s current UTC time.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlightPingResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlightPingResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlightPingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flights/{flightNumber}": {
+      "get": {
+        "tags": [
+          "Flights"
+        ],
+        "summary": "Gets a single flight by its flight number.",
+        "parameters": [
+          {
+            "name": "flightNumber",
+            "in": "path",
+            "description": "Flight number, for example \u0060AF204\u0060.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The flight.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlightResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlightResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlightResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No flight with that number.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flights/departures/{airport}": {
+      "get": {
+        "tags": [
+          "Flights"
+        ],
+        "summary": "Departures board for an airport, ordered by estimated departure.",
+        "parameters": [
+          {
+            "name": "airport",
+            "in": "path",
+            "description": "Three-letter IATA airport code, for example \u0060LGW\u0060.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The departures board.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeparturesBoardResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeparturesBoardResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeparturesBoardResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The airport code is not a valid IATA code.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flights/arrivals/{airport}": {
+      "get": {
+        "tags": [
+          "Flights"
+        ],
+        "summary": "Arrivals board for an airport, ordered by estimated arrival.",
+        "description": "Landed and cancelled flights are included; diverted flights are not.",
+        "parameters": [
+          {
+            "name": "airport",
+            "in": "path",
+            "description": "Three-letter IATA airport code, for example \u0060LHR\u0060.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The arrivals board.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArrivalsBoardResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArrivalsBoardResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArrivalsBoardResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The airport code is not a valid IATA code.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flights/{flightNumber}/events": {
+      "post": {
+        "tags": [
+          "Flights"
+        ],
+        "summary": "Applies a lifecycle event to a flight and returns the updated flight.",
+        "description": "\u0060type\u0060 is one of \u0060delay\u0060, \u0060gate-assigned\u0060, \u0060gate-changed\u0060, \u0060boarding-started\u0060,\n            \u0060departed\u0060, \u0060landed\u0060, \u0060cancelled\u0060 or \u0060diverted\u0060. Only the fields that type needs are read.",
+        "parameters": [
+          {
+            "name": "flightNumber",
+            "in": "path",
+            "description": "Flight number, for example \u0060AF455\u0060.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The event to apply.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlightEventRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlightEventRequest"
+              }
+            },
+            "application/*\u002Bjson": {
+              "schema": {
+                "$ref": "#/components/schemas/FlightEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The flight after the event was applied.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlightResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlightResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlightResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body is malformed or missing a field the event type needs.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No flight with that number.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The event is not allowed in the flight\u0027s current state (for example, a cancelled flight departing).",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ArrivalBoardEntry": {
+        "type": "object",
+        "properties": {
+          "flightNumber": {
+            "type": "string",
+            "description": "Flight number.",
+            "nullable": true
+          },
+          "origin": {
+            "type": "string",
+            "description": "IATA code of the origin airport.",
+            "nullable": true
+          },
+          "scheduledDeparture": {
+            "type": "string",
+            "description": "Scheduled departure time from the origin.",
+            "format": "date-time"
+          },
+          "scheduledArrival": {
+            "type": "string",
+            "description": "Scheduled arrival time.",
+            "format": "date-time"
+          },
+          "estimatedArrival": {
+            "type": "string",
+            "description": "Current estimated arrival time.",
+            "format": "date-time"
+          },
+          "actualArrival": {
+            "type": "string",
+            "description": "Actual arrival time, once landed; null before.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Flight status, for example \u0060Departed\u0060, \u0060Landed\u0060 or \u0060Delayed\u0060.",
+            "nullable": true
+          },
+          "delayMinutes": {
+            "type": "integer",
+            "description": "Minutes between scheduled and estimated (or actual) departure.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One row on the arrivals board."
+      },
+      "ArrivalsBoardResponse": {
+        "type": "object",
+        "properties": {
+          "airport": {
+            "type": "string",
+            "description": "IATA code of the airport.",
+            "nullable": true
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "When the board was generated (UTC).",
+            "format": "date-time"
+          },
+          "arrivals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArrivalBoardEntry"
+            },
+            "description": "Arriving flights, ordered by estimated arrival.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "An airport\u0027s arrivals board."
+      },
+      "DepartureBoardEntry": {
+        "type": "object",
+        "properties": {
+          "flightNumber": {
+            "type": "string",
+            "description": "Flight number.",
+            "nullable": true
+          },
+          "destination": {
+            "type": "string",
+            "description": "IATA code of the destination airport.",
+            "nullable": true
+          },
+          "scheduledDeparture": {
+            "type": "string",
+            "description": "Scheduled departure time.",
+            "format": "date-time"
+          },
+          "estimatedDeparture": {
+            "type": "string",
+            "description": "Current estimated departure time.",
+            "format": "date-time"
+          },
+          "gate": {
+            "type": "string",
+            "description": "Assigned gate, or null if none yet.",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Flight status, for example \u0060Scheduled\u0060, \u0060Boarding\u0060 or \u0060Delayed\u0060.",
+            "nullable": true
+          },
+          "delayMinutes": {
+            "type": "integer",
+            "description": "Minutes between scheduled and estimated departure.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One row on the departures board."
+      },
+      "DeparturesBoardResponse": {
+        "type": "object",
+        "properties": {
+          "airport": {
+            "type": "string",
+            "description": "IATA code of the airport.",
+            "nullable": true
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "When the board was generated (UTC).",
+            "format": "date-time"
+          },
+          "departures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DepartureBoardEntry"
+            },
+            "description": "Departing flights, ordered by estimated departure.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "An airport\u0027s departures board."
+      },
+      "FlightEventRequest": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Event type: delay, gate-assigned, gate-changed, boarding-started, departed, landed, cancelled or diverted.",
+            "nullable": true
+          },
+          "newEstimatedDeparture": {
+            "type": "string",
+            "description": "New estimated departure. Required for \u0060delay\u0060.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "gate": {
+            "type": "string",
+            "description": "Gate, for example \u0060A12\u0060. Required for \u0060gate-assigned\u0060 and \u0060gate-changed\u0060.",
+            "nullable": true
+          },
+          "actualTime": {
+            "type": "string",
+            "description": "Actual time of the event. Required for \u0060departed\u0060 and \u0060landed\u0060.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "description": "Cancellation reason. Required for \u0060cancelled\u0060.",
+            "nullable": true
+          },
+          "airport": {
+            "type": "string",
+            "description": "IATA code of the diversion airport. Required for \u0060diverted\u0060.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Flat JSON body for \u0060POST api/flights/{flightNumber}/events\u0060. AeroFlow.FlightStatus.Models.FlightEventRequest.Type is the discriminator;\nonly the fields relevant to that type are read. Mapped to the closed AeroFlow.FlightStatus.Domain.FlightEvent union at the edge."
+      },
+      "FlightPingResponse": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "description": "Name of the service that answered.",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable status message.",
+            "nullable": true
+          },
+          "utcNow": {
+            "type": "string",
+            "description": "The server\u0027s current time in UTC.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response from the ping endpoint."
+      },
+      "FlightResponse": {
+        "type": "object",
+        "properties": {
+          "flightNumber": {
+            "type": "string",
+            "description": "Flight number.",
+            "nullable": true
+          },
+          "origin": {
+            "type": "string",
+            "description": "IATA code of the origin airport.",
+            "nullable": true
+          },
+          "destination": {
+            "type": "string",
+            "description": "IATA code of the destination airport.",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Current lifecycle status.",
+            "nullable": true
+          },
+          "scheduledDeparture": {
+            "type": "string",
+            "description": "Scheduled departure time.",
+            "format": "date-time"
+          },
+          "scheduledArrival": {
+            "type": "string",
+            "description": "Scheduled arrival time.",
+            "format": "date-time"
+          },
+          "estimatedDeparture": {
+            "type": "string",
+            "description": "Current estimated departure time.",
+            "format": "date-time"
+          },
+          "estimatedArrival": {
+            "type": "string",
+            "description": "Current estimated arrival time.",
+            "format": "date-time"
+          },
+          "actualDeparture": {
+            "type": "string",
+            "description": "Actual departure time, once departed.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "actualArrival": {
+            "type": "string",
+            "description": "Actual arrival time, once landed.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "gate": {
+            "type": "string",
+            "description": "Assigned gate, or null if none yet.",
+            "nullable": true
+          },
+          "delayMinutes": {
+            "type": "integer",
+            "description": "Minutes between scheduled and estimated departure.",
+            "format": "int32"
+          },
+          "divertedTo": {
+            "type": "string",
+            "description": "IATA code of the diversion airport, if diverted.",
+            "nullable": true
+          },
+          "cancellationReason": {
+            "type": "string",
+            "description": "Reason given, if cancelled.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "API shape for a flight. Kept separate from the domain AeroFlow.FlightStatus.Domain.Flight so either can evolve.\nDomain AeroFlow.FlightStatus.Domain.Option\u00601 values become nullable here, because JSON represents absence as \u0060null\u0060."
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Flights"
+    }
+  ]
+}
