@@ -61,6 +61,8 @@ flowchart LR
 
 Errors are `application/problem+json` with a `code` extension: 400 (`invalid_airport_code`, `invalid_gate`, `invalid_flight_number`, ...), 404 (`flight_not_found`), 409 (`invalid_transition`, `gate_required`, `gate_already_assigned`, `delay_not_later`, `landing_before_departure`, `diversion_to_destination`, `flight_already_active`). Reference docs: `/scalar` and `/openapi/v1.json` when `ApiDocs:Enabled` is true.
 
+A copy of the generated OpenAPI document is checked in at `openapi/svc-flight-status.json` (catalogued by Backstage, ADR-0024). `OpenApiExportTests` fails when it drifts from the code; regenerate with `UPDATE_OPENAPI=1 dotnet test --filter OpenApiExportTests`.
+
 ### Events consumed
 
 | Topic | Subscription | Event type | Effect | Ignored |
