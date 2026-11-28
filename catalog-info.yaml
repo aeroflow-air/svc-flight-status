@@ -1,0 +1,28 @@
+# Backstage catalogue entry for this repo (ADR-0024, platform-handbook#123).
+# Discovered by the aeroflow-air Backstage instance (aeroflow-air/backstage).
+# Domains, Systems and the event-bus Resource live in platform-handbook/catalog/.
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: svc-flight-status
+  title: Flight status
+  description: >-
+    Tracks every flight's lifecycle from flight-events and serves flight
+    lookup and departures/arrivals boards (OpenAPI via Scalar in Development
+    only). Publishes nothing. Not deployed.
+  annotations:
+    github.com/project-slug: aeroflow-air/svc-flight-status
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - dotnet
+    - service-bus
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:squad-checkin
+  system: airport
+  consumesApis:
+    - flight-events
+  dependsOn:
+    - resource:event-bus
+    - component:lib-service-defaults
